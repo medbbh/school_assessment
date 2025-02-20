@@ -2,7 +2,7 @@ from rest_framework import serializers
 
 from classes.models import Matiere
 from classes.serializers import MatiereSerializer
-from .models import Assignment, Note
+from .models import Assignment, Bulletin, Note
 
 class AssignmentSerializer(serializers.ModelSerializer):
     # Return a nested representation for the subject
@@ -42,3 +42,10 @@ class NoteSerializer(serializers.ModelSerializer):
             'grade',
             'date'
         ]
+
+
+class BulletinSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bulletin
+        fields = ['id', 'classe', 'term_name', 'is_confirmed', 'created_at']
+        read_only_fields = ['created_at']

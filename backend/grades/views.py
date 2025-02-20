@@ -2,11 +2,19 @@ from rest_framework import viewsets, permissions, status, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.db.models import Sum, F
-from .models import Assignment, Note
-from .serializers import AssignmentSerializer, NoteSerializer
+from .models import Assignment, Bulletin, Note
+from .serializers import AssignmentSerializer, BulletinSerializer, NoteSerializer
 from users.models import CustomUser
 from classes.models import Classe
+from django.template.loader import render_to_string
+from weasyprint import HTML
+from django.http import HttpResponse
 
+
+class IsAdmin(permissions.BasePermission):
+    """Custom permission: Only Admins can modify subjects."""
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == "admin"
 # ---------------------------
 # Assignment ViewSet
 # ---------------------------
@@ -179,3 +187,181 @@ class NoteViewSet(viewsets.ModelViewSet):
             "moyenne_generale": moyenne_generale,
             "grades": serialized_notes
         }, status=status.HTTP_200_OK)
+
+
+class BulletinViewSet(viewsets.ModelViewSet):
+    queryset = Bulletin.objects.all()
+    serializer_class = BulletinSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'confirm_bulletin', 'download_pdf']:
+            return [IsAdmin()]
+        return [permissions.IsAuthenticated()]
+
+    @action(detail=True, methods=['post'], url_path='confirm')
+    def confirm_bulletin(self, request, pk=None):
+        bulletin = self.get_object()
+        bulletin.is_confirmed = True
+        bulletin.save()
+        return Response(
+            {"message": f"Bulletin '{bulletin.term_name}' for class '{bulletin.classe.name}' has been confirmed."},
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['get'], url_path='download-pdf')
+    def download_pdf(self, request, pk=None):
+        """
+        Generate a PDF with student-report logic from the NoteViewSet.
+        """
+        bulletin = self.get_object()
+        if not bulletin.is_confirmed:
+            return Response({"error": "Bulletin not confirmed."}, status=status.HTTP_403_FORBIDDEN)
+
+        classe = bulletin.classe
+        students = CustomUser.objects.filter(role='student', classe=classe)
+
+        # We'll build a 'students_data' list, each item replicating what 'student_report' returns
+        students_data = []
+        for student in students:
+            # Reuse the logic from note's student_report, or directly replicate it:
+            notes = Note.objects.filter(student=student)
+            if notes.exists():
+                from django.db.models import Sum, F
+                total_weighted_score = notes.aggregate(
+                    sum_weighted=Sum(F('grade') * F('assignment__matiere__coefficient'))
+                )['sum_weighted'] or 0
+                total_coeff = notes.aggregate(
+                    sum_coefficients=Sum(F('assignment__matiere__coefficient'))
+                )['sum_coefficients'] or 0
+                moyenne_generale = round(total_weighted_score / total_coeff, 2) if total_coeff > 0 else 0
+            else:
+                moyenne_generale = 0
+
+            # If you want the actual notes, you can also serialize them
+            serialized_notes = NoteSerializer(notes, many=True).data
+
+            students_data.append({
+                "student_name": student.username,
+                "classe_name": student.classe.name if student.classe else None,
+                "moyenne_generale": moyenne_generale,
+                "grades": serialized_notes
+            })
+
+        # Render HTML template
+        context = {
+            "classe_name": classe.name,
+            "term_name": bulletin.term_name,
+            "students_data": students_data
+        }
+        html_content = render_to_string("grades/bulletin_pdf.html", context)
+
+        pdf_file = HTML(string=html_content).write_pdf()
+
+        # Return PDF
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"Bulletin_{classe.name}_{bulletin.term_name}.pdf".replace(" ", "_")
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    @action(detail=True, methods=['get'], url_path='download-pdf-student/(?P<student_id>\d+)')
+    def download_pdf_single_student(self, request, pk=None, student_id=None):
+        bulletin = self.get_object()
+        if not bulletin.is_confirmed:
+            return Response({"error": "Bulletin not confirmed."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            student_user = CustomUser.objects.get(pk=student_id, role='student')
+        except CustomUser.DoesNotExist:
+            return Response({"error": "Invalid student ID."}, status=status.HTTP_404_NOT_FOUND)
+
+        if student_user.classe != bulletin.classe:
+            return Response({"error": "Student does not belong to this bulletin's class."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Permissions check: admin, the same student, or the parent
+        user = request.user
+        if user.role == "admin":
+            pass
+        elif user.role == "student":
+            if user.id != student_user.id:
+                return Response({"error": "You can only download your own bulletin."}, status=status.HTTP_403_FORBIDDEN)
+        elif user.role == "parent":
+            if student_user.parent_id != user.id:
+                return Response({"error": "You can only download bulletin for your child."}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({"error": "Role not allowed to download single-student bulletin."}, status=status.HTTP_403_FORBIDDEN)
+
+        # ---------------------------
+        # 1) Build ranking for the entire class
+        # ---------------------------
+        from django.db.models import Sum, F
+        all_students = CustomUser.objects.filter(role='student', classe=bulletin.classe)
+        
+        # We'll store (student_obj, avg) in a temp list
+        ranking_list = []
+        for st in all_students:
+            st_notes = Note.objects.filter(student=st)
+            if st_notes.exists():
+                total_weighted_score = st_notes.aggregate(
+                    sum_weighted=Sum(F('grade') * F('assignment__matiere__coefficient'))
+                )['sum_weighted'] or 0
+                total_coeff = st_notes.aggregate(
+                    sum_coefficients=Sum(F('assignment__matiere__coefficient'))
+                )['sum_coefficients'] or 0
+                st_avg = round(total_weighted_score / total_coeff, 2) if total_coeff else 0
+            else:
+                st_avg = 0
+            ranking_list.append((st, st_avg))
+        
+        # Sort by avg desc
+        ranking_list.sort(key=lambda x: x[1], reverse=True)
+        
+        # Assign rank
+        rank_map = {}
+        current_rank = 1
+        for (s_obj, s_avg) in ranking_list:
+            rank_map[s_obj.id] = current_rank
+            current_rank += 1
+        
+        # Now we have the single student's rank
+        student_rank = rank_map.get(student_user.id, None)
+
+        # ---------------------------
+        # 2) Gather the student's own notes
+        # ---------------------------
+        notes = Note.objects.filter(student=student_user)
+        if notes.exists():
+            total_weighted_score = notes.aggregate(
+                sum_weighted=Sum(F('grade') * F('assignment__matiere__coefficient'))
+            )['sum_weighted'] or 0
+            total_coefficients = notes.aggregate(
+                sum_coefficients=Sum(F('assignment__matiere__coefficient'))
+            )['sum_coefficients'] or 0
+            moyenne_generale = round(total_weighted_score / total_coefficients, 2) if total_coefficients > 0 else 0
+        else:
+            moyenne_generale = 0
+
+        # 3) Serialize the notes if you want to show them individually
+        serialized_notes = NoteSerializer(notes, many=True).data
+
+        # 4) Build context with 'rank'
+        context = {
+            "term_name": bulletin.term_name,
+            "classe_name": bulletin.classe.name,
+            "students_data": [
+                {
+                    "student_name": student_user.username,
+                    "moyenne_generale": moyenne_generale,
+                    "rank": student_rank,           # <--- ADD RANK HERE
+                    "grades": serialized_notes
+                }
+            ]
+        }
+
+        # Render + Return PDF as you do now
+        html_content = render_to_string("grades/bulletin_pdf.html", context)
+        pdf_file = HTML(string=html_content).write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
+        filename = f"Bulletin_{bulletin.classe.name}_{bulletin.term_name}_student_{student_user.username}.pdf".replace(" ", "_")
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response

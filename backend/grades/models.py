@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import CustomUser
-from classes.models import Matiere
+from classes.models import Classe, Matiere
 
 
 class Assignment(models.Model):
@@ -28,4 +28,16 @@ class Note(models.Model):
     def __str__(self):
         return f"{self.student.username} - {self.matiere.name}: {self.grade}/20"
 
+class Bulletin(models.Model):
+    """
+    A Bulletin (grade sheet) can be tied to a specific class, 
+    and possibly represent a specific term/semester, etc.
+    """
+    classe = models.ForeignKey(Classe, on_delete=models.CASCADE, related_name="bulletins")
+    term_name = models.CharField(max_length=100, default="Semestre 1")
+    is_confirmed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Bulletin {self.term_name} - {self.classe.name}"
 

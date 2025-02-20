@@ -9,6 +9,7 @@ import {
   BookOpen,
   AlertCircle
 } from "lucide-react";
+import LogoutButton from "../../components/LogoutButton";
 
 const ProfessorDashboard = () => {
   const [classes, setClasses] = useState([]);
@@ -33,6 +34,8 @@ const ProfessorDashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
+       <LogoutButton className="mt-4" />
+
       {/* Header Section */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">

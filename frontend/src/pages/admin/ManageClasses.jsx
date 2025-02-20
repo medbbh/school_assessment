@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getClasses, createClass, updateClass, deleteClass } from "../../api/classService";
+import { createBulletin, confirmBulletin } from "../../api/bulletinService";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +23,9 @@ const ManageClasses = () => {
   const loadClasses = async () => {
     try {
       const data = await getClasses();
-      setClasses(data);
+      // Initialize each class with "hasConfirmedBulletin" = false by default
+      const enriched = data.map(cls => ({ ...cls, hasConfirmedBulletin: false }));
+      setClasses(enriched);
       setLoading(false);
     } catch (err) {
       setError("Erreur lors du chargement des classes.");
@@ -65,12 +68,39 @@ const ManageClasses = () => {
     }
   };
 
+  const handleConfirmBulletin = async (classId) => {
+    try {
+      // 1) Create a new bulletin for this class
+      const bulletin = await createBulletin({
+        classe: classId,
+        term_name: "Semestre 1"
+      });
+      // 2) Confirm that bulletin
+      await confirmBulletin(bulletin.id);
+
+      toast.success(`Bulletin de la classe ${classId} confirmé avec succès !`);
+
+      // 3) Update local state to mark this class as having a confirmed bulletin
+      setClasses(classes.map(cls => (
+        cls.id === classId
+          ? { ...cls, hasConfirmedBulletin: true }
+          : cls
+      )));
+    } catch (err) {
+      console.error(err);
+      toast.error("Erreur lors de la confirmation du bulletin.");
+    }
+  };
+
   // Pagination Logic
   const filteredClasses = classes.filter(cls =>
     cls.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const totalPages = Math.ceil(filteredClasses.length / classesPerPage);
-  const displayedClasses = filteredClasses.slice((currentPage - 1) * classesPerPage, currentPage * classesPerPage);
+  const displayedClasses = filteredClasses.slice(
+    (currentPage - 1) * classesPerPage,
+    currentPage * classesPerPage
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
@@ -145,45 +175,55 @@ const ManageClasses = () => {
                   <tr className="bg-gray-50 border-b border-gray-200">
                     <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">ID</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Nom de la Classe</th>
+                    <th className="text-left py-4 px-6 text-sm font-semibold text-gray-600">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedClasses.map((cls, index) => (
-                    <tr 
-                      key={cls.id}
-                      className={`
-                        border-b border-gray-100 last:border-b-0
-                        hover:bg-gray-50 transition-colors
-                        ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}
-                      `}
-                    >
-                      <td className="py-4 px-6 text-sm text-gray-600">
-                        {cls.id}
-                      </td>
-                      <td className="py-4 px-6 flex justify-between items-center">
-                        <input
-                          type="text"
-                          value={cls.name}
-                          onChange={(e) => {
-                            const newName = e.target.value;
-                            setClasses(classes.map(c => 
-                              c.id === cls.id ? { ...c, name: newName } : c
-                            ));
-                          }}
-                          onBlur={(e) => handleUpdateClass(cls.id, e.target.value)}
-                          className="w-full px-3 py-2 rounded-md border border-gray-200 
-                            focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
-                            transition-colors text-gray-800 bg-transparent
-                            hover:bg-white focus:bg-white"
-                        />
-                        <Trash2
-                          size={20}
-                          className="text-red-600 hover:text-red-800 cursor-pointer ml-4"
-                          onClick={() => handleDeleteClass(cls.id)}
-                        />
-                      </td>
-                    </tr>
-                  ))}
+                  {displayedClasses.map((cls, index) => {
+                    const rowBg = index % 2 === 0 ? "bg-white" : "bg-gray-50/30";
+                    const buttonStyle = cls.hasConfirmedBulletin
+                      ? "bg-red-600 hover:bg-red-700 cursor-not-allowed"
+                      : "bg-green-600 hover:bg-green-700";
+                    const buttonDisabled = cls.hasConfirmedBulletin;
+
+                    return (
+                      <tr key={cls.id} className={`border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${rowBg}`}>
+                        <td className="py-4 px-6 text-sm text-gray-600">{cls.id}</td>
+                        <td className="py-4 px-6 text-sm text-gray-600">
+                          <input
+                            type="text"
+                            value={cls.name}
+                            onChange={(e) => {
+                              const newName = e.target.value;
+                              setClasses(classes.map(c => c.id === cls.id ? { ...c, name: newName } : c));
+                            }}
+                            onBlur={(e) => handleUpdateClass(cls.id, e.target.value)}
+                            className="w-full px-3 py-2 rounded-md border border-gray-200 
+                              focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 
+                              transition-colors text-gray-800 bg-transparent
+                              hover:bg-white focus:bg-white"
+                          />
+                        </td>
+                        <td className="py-4 px-6 flex items-center gap-2">
+                          {/* Confirm Bulletin Button */}
+                          <button
+                            onClick={() => !buttonDisabled && handleConfirmBulletin(cls.id)}
+                            className={`px-3 py-2 text-sm font-medium text-white rounded ${buttonStyle}`}
+                            disabled={buttonDisabled}
+                          >
+                            {cls.hasConfirmedBulletin ? "Bulletin Confirmé" : "Confirmer le Bulletin"}
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteClass(cls.id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

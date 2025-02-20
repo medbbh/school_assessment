@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulletin Scolaire - École Privée IQraa</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    /* Variables globales */
+    :root {
+      --primary-color: #1a3a63;
+      --secondary-color: #2c5282;
+      --accent-color: #4a6fa5;
+      --success-color: #2e7d32;
+      --warning-color: #e65100;
+      --danger-color: #c62828;
+      --light-bg: #f5f8fa;
+      --dark-text: #263238;
+      --medium-text: #455a64;
+      --light-text: #78909c;
+      --border-color: #cfd8dc;
+      --card-shadow: rgba(0, 0, 0, 0.08) 0px 2px 6px;
+    }
+
+    /* Réinitialisation et styles de base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Liberation Sans', Arial, Helvetica, sans-serif;
+      color: var(--dark-text);
+      background-color: white;
+      line-height: 1.5;
+      font-size: 12pt;
+    }
+
+    /* Styles d'impression */
+    @page {
+      size: A4;
+      margin: 15mm 10mm 15mm 10mm;
+    }
+
+    @media print {
+      body {
+        background-color: white;
+      }
+
+      .no-print {
+        display: none !important;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+
+      .avoid-break {
+        page-break-inside: avoid;
+      }
+    }
+
+    /* Styles de mise en page */
+    .container {
+      max-width: 210mm; /* Largeur A4 */
+      margin: 0 auto;
+      padding: 0;
+    }
+
+    /* En-tête principal */
+    .main-header {
+      padding: 20px 0;
+      margin-bottom: 30px;
+      border-bottom: 2px solid var(--primary-color);
+    }
+
+    .school-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .school-name {
+      font-size: 22pt;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
+
+    .school-contact {
+      text-align: right;
+      font-size: 10pt;
+      color: var(--medium-text);
+      line-height: 1.6;
+    }
+
+    /* Informations du bulletin */
+    .bulletin-header {
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .bulletin-title {
+      font-size: 16pt;
+      font-weight: 600;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+
+    .classe-info {
+      font-size: 12pt;
+      color: var(--medium-text);
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    /* Carte d'étudiant */
+    .student-card {
+      margin-bottom: 35px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      box-shadow: var(--card-shadow);
+      break-inside: avoid;
+    }
+
+    .student-header {
+      background-color: #f0f4f8;
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .student-name {
+      font-size: 14pt;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .student-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 5px;
+    }
+
+    .info-line {
+      font-size: 12pt;
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .student-content {
+      padding: 15px;
+    }
+
+    /* Styles pour les matières */
+    .matiere-section {
+      margin-bottom: 20px;
+      break-inside: avoid;
+    }
+
+    .matiere-header {
+      background-color: #eef2f7;
+      padding: 8px 12px;
+      font-weight: 600;
+      color: var(--primary-color);
+      border-radius: 4px 4px 0 0;
+      border: 1px solid #e0e5eb;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11pt;
+    }
+
+    /* Tableau des notes */
+    .grades-table-wrapper {
+      overflow-x: auto;
+    }
+
+    .grades-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 10pt;
+      border: 1px solid #e0e5eb;
+      border-top: none;
+    }
+
+    .grades-table th {
+      background-color: #f0f4f8;
+      color: var(--dark-text);
+      font-weight: 600;
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .grades-table td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #eaeef2;
+      vertical-align: middle;
+    }
+
+    .grades-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .column-evaluation {
+      width: 50%;
+    }
+
+    .column-note {
+      width: 25%;
+    }
+
+    .column-date {
+      width: 25%;
+    }
+
+    /* Styles des notes */
+    .grade-pill {
+      display: inline-block;
+      font-weight: 600;
+      text-align: center;
+      border-radius: 3px;
+      min-width: 50px;
+      padding: 3px 6px;
+    }
+
+    .grade-high {
+      background-color: rgba(46, 125, 50, 0.1);
+      color: var(--success-color);
+    }
+
+    .grade-medium {
+      background-color: rgba(230, 81, 0, 0.1);
+      color: var(--warning-color);
+    }
+
+    .grade-low {
+      background-color: rgba(198, 40, 40, 0.1);
+      color: var(--danger-color);
+    }
+
+    .date-display {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .date-display i {
+      color: var(--medium-text);
+      font-size: 10pt;
+    }
+
+    /* Message quand pas de notes */
+    .empty-grades {
+      text-align: center;
+      padding: 25px;
+      color: var(--medium-text);
+      font-style: italic;
+      background-color: #fafafa;
+      border-radius: 4px;
+    }
+
+    .empty-grades i {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 10px;
+      opacity: 0.6;
+    }
+
+    /* Pied de page */
+    .page-footer {
+      margin-top: 30px;
+      padding-top: 15px;
+      border-top: 1px solid var(--border-color);
+      text-align: center;
+      color: var(--light-text);
+      font-size: 9pt;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="main-header">
+      <div class="school-info">
+        <h1 class="school-name">École Privée IQraa</h1>
+        <div class="school-contact">
+          <p><i class="fas fa-map-marker-alt"></i> 23 Avenue des Sciences, Casablanca</p>
+          <p><i class="fas fa-phone"></i> +212 522 123 456</p>
+          <p><i class="fas fa-envelope"></i> contact@ecole-iqraa.ma</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="bulletin-header">
+      <h2 class="bulletin-title">
+        Bulletin: {{ term_name }}
+      </h2>
+      <div class="classe-info">
+        <span>Classe: {{ classe_name }}</span>
+      </div>
+    </div>
+
+    {% for student in students_data %}
+      <div class="student-card avoid-break">
+        <div class="student-header">
+          <h3 class="student-name">{{ student.student_name }}</h3>
+          <div class="student-info">
+            <div class="info-line">
+              Moyenne Générale: {{ student.moyenne_generale }}/20
+            </div>
+            <div class="info-line">
+              Rang: {{ student.rank }}
+            </div>
+          </div>
+        </div>
+
+        <div class="student-content">
+          {% if student.grades %}
+            {% comment %}
+              Grouper les notes par matière
+            {% endcomment %}
+            {% with grades=student.grades %}
+              {% regroup grades by assignment_detail.matiere.name as matiere_list %}
+              {% for matiere in matiere_list %}
+                <div class="matiere-section">
+                  <div class="matiere-header">
+                    <i class="fas fa-book"></i>
+                    {% if matiere.grouper %}
+                      {{ matiere.grouper }}
+                    {% else %}
+                      Matière non spécifiée
+                    {% endif %}
+                  </div>
+                  <div class="grades-table-wrapper">
+                    <table class="grades-table">
+                      <thead>
+                        <tr>
+                          <th class="column-evaluation">Évaluation</th>
+                          <th class="column-note">Note</th>
+                          <th class="column-date">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for grade in matiere.list %}
+                          <tr>
+                            <td class="column-evaluation">
+                              {{ grade.assignment_detail.title|default:"(Sans titre)" }}
+                            </td>
+                            <td class="column-note">
+                              {% if grade.grade >= 16 %}
+                                <span class="grade-pill grade-high">{{ grade.grade }}/20</span>
+                              {% elif grade.grade >= 10 %}
+                                <span class="grade-pill grade-medium">{{ grade.grade }}/20</span>
+                              {% else %}
+                                <span class="grade-pill grade-low">{{ grade.grade }}/20</span>
+                              {% endif %}
+                            </td>
+                            <td class="column-date">
+                              <div class="date-display">
+                                <i class="far fa-calendar-alt"></i>
+                                <span>{{ grade.date|date:"d/m/Y" }}</span>
+                              </div>
+                            </td>
+                          </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              {% endfor %}
+            {% endwith %}
+          {% else %}
+            <div class="empty-grades">
+              <i class="fas fa-clipboard"></i>
+              <p>Aucune note enregistrée pour cet élève.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if forloop.counter|divisibleby:2 and not forloop.last %}
+        <div class="page-break"></div>
+      {% endif %}
+    {% endfor %}
+
+    <footer class="page-footer">
+      <p>Document généré le {{ "now"|date:"d/m/Y" }} - École Privée IQraa</p>
+    </footer>
+  </div>
+</body>
+</html>

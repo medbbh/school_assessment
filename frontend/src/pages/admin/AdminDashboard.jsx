@@ -1,10 +1,12 @@
 import React from "react";
 import { Users, BookOpen, FileText, BarChart } from "lucide-react";
 import { Link } from "react-router-dom";
+import LogoutButton from "../../components/LogoutButton";
 
 const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center p-8">
+       <LogoutButton className="mt-4" />
       <h1 className="text-4xl font-bold text-gray-800">Tableau de Bord Administrateur</h1>
       <p className="text-lg text-gray-600 mt-2">Bienvenue, administrateur.</p>
 

@@ -9,7 +9,7 @@ export const login = async (username, password, expectedRole) => {
     const response = await axios.post(`${API_URL}token/`, { username, password });
     console.log("Login response:", response.data); // Debug log
 
-    const { access, role, username: returnedUsername } = response.data;
+    const { access,refresh, role, username: returnedUsername, user_id } = response.data;
 
     if (!role) {
       console.error("Error: Role is missing in the response");
@@ -17,9 +17,10 @@ export const login = async (username, password, expectedRole) => {
     }
 
     localStorage.setItem("token", access);
-    localStorage.setItem("user", JSON.stringify({ username: returnedUsername, role }));
+    localStorage.setItem("refresh", refresh);
+    localStorage.setItem("user", JSON.stringify({ username: returnedUsername, role, user_id }));
 
-    return { token: access, role, username: returnedUsername };
+    return { token: access, role, username: returnedUsername, user_id };
   } catch (error) {
     console.error("Login error:", error.response?.data || error.message);
     throw "Nom d'utilisateur ou mot de passe incorrect.";

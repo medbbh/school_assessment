@@ -11,6 +11,7 @@ import ProfessorCreateAssignment from "./pages/professor/ProfessorCreateAssignme
 import ProfessorGradeAssignment from "./pages/professor/ProfessorGradeAssignment";
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import ParentChildDetail from "./pages/parent/ParentChildDetail";
+import StudentDashboard from "./pages/student/StudentDashboard";
 
 const AppRoutes = () => {
   return (
@@ -71,6 +72,16 @@ const AppRoutes = () => {
           element={
             <AuthGuard allowedRoles={["parent"]}>
               <ParentChildDetail />
+            </AuthGuard>
+          }
+        />
+
+        {/* STUDENT ROUTES */}
+        <Route
+          path="/student-dashboard"
+          element={
+            <AuthGuard allowedRoles={["student"]}>
+              <StudentDashboard />
             </AuthGuard>
           }
         />
