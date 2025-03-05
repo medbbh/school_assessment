@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext"; 
 import { getStudentReport } from "../../api/gradeService";
 import { downloadStudentBulletin } from "../../api/bulletinService";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Download, Loader2 } from "lucide-react";
 import LogoutButton from "../../components/LogoutButton";
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext); 
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   // Example: Hardcode the bulletin ID. If you have multiple bulletins, you'd fetch the right one.
   const bulletinId = 1;
@@ -32,11 +33,14 @@ const StudentDashboard = () => {
   }, [user]);
 
   const handleDownloadBulletin = async () => {
+    setDownloading(true);
     try {
       await downloadStudentBulletin(bulletinId, user.user_id);
     } catch (error) {
       console.error("Error downloading bulletin PDF:", error);
       alert("Erreur lors du téléchargement du bulletin. Vérifiez si le bulletin est confirmé.");
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -92,9 +96,22 @@ const StudentDashboard = () => {
             <div className="bg-green-50 rounded-lg p-4 flex flex-col justify-center">
               <button
                 onClick={handleDownloadBulletin}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+                disabled={downloading}
+                className={`bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center justify-center gap-2 ${
+                  downloading ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
               >
-                Télécharger mon Bulletin
+                {downloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Téléchargement...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Télécharger mon Bulletin
+                  </>
+                )}
               </button>
             </div>
           </div>

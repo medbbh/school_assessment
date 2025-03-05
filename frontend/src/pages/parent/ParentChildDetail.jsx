@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getStudentReport } from "../../api/gradeService";
-import { ArrowLeft } from "lucide-react";
+import { downloadStudentBulletin } from "../../api/bulletinService";
+import { ArrowLeft, Download, Loader2 } from "lucide-react";
 
 const ParentChildDetail = () => {
   const { childId } = useParams();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -21,6 +23,18 @@ const ParentChildDetail = () => {
     };
     fetchReport();
   }, [childId]);
+
+  const handleDownloadBulletin = async () => {
+    setDownloading(true);
+    try {
+      await downloadStudentBulletin(1, childId);
+    } catch (error) {
+      console.error("Error downloading bulletin PDF:", error);
+      alert("Erreur lors du téléchargement du bulletin. Vérifiez si le bulletin est confirmé.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -62,7 +76,7 @@ const ParentChildDetail = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-4">
             {report.student}
           </h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-gray-50 rounded-lg p-4">
               <p className="text-sm text-gray-500">Classe</p>
               <p className="text-lg font-semibold text-gray-900">{report.classe || "Aucune"}</p>
@@ -70,6 +84,27 @@ const ParentChildDetail = () => {
             <div className="bg-blue-50 rounded-lg p-4">
               <p className="text-sm text-blue-600">Moyenne Générale</p>
               <p className="text-lg font-semibold text-blue-900">{report.moyenne_generale}/20</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 flex flex-col justify-center">
+              <button
+                onClick={handleDownloadBulletin}
+                disabled={downloading}
+                className={`bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center justify-center gap-2 ${
+                  downloading ? 'opacity-75 cursor-not-allowed' : ''
+                }`}
+              >
+                {downloading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Téléchargement...
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4" />
+                    Télécharger le Bulletin
+                  </>
+                )}
+              </button>
             </div>
           </div>
 
