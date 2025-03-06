@@ -18,53 +18,89 @@ export const AuthProvider = ({ children }) => {
         setUser(parsedUser);
       }
     } catch (error) {
-      console.error("Error parsing user data:", error);
-      localStorage.removeItem("user"); // Clear invalid user data
+      console.error("❌ Error parsing user data:", error);
+      localStorage.removeItem("user");
       setUser(null);
     } finally {
-      setLoading(false); // Authentication check complete
+      setLoading(false);
     }
   }, []);
 
   const loginUser = (token, userData) => {
-    console.log("LoginUser received:", userData); // Debug log
+    console.log("🔹 loginUser received from backend:", userData);
 
     if (!userData || !userData.role) {
-      console.error("Error: userData is missing or has no role");
+      console.error("❌ Error: userData is missing or has no 'role' field");
       return;
     }
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(userData));
-    setUser(userData);
+    // We'll unify admin and supervisor under "Direction" in French
+    // but we also keep track of the original role in subRole
+    let frontendRole = "";
+    let subRole = userData.role; // e.g. "admin" or "supervisor"
 
     switch (userData.role) {
       case "admin":
-        navigate("/admin-dashboard");
+      case "supervisor":
+        frontendRole = "Direction";
         break;
       case "professor":
-        navigate("/professor-dashboard");
+        frontendRole = "Professeur";
         break;
       case "student":
-        navigate("/student-dashboard");
+        frontendRole = "Étudiant";
         break;
       case "parent":
-        navigate("/parent-dashboard");
+        frontendRole = "Parent";
         break;
       default:
-        navigate("/");
+        frontendRole = userData.role; // fallback
     }
+
+    const updatedUserData = {
+      ...userData,
+      role: frontendRole, 
+      subRole, // store the actual backend role
+    };
+
+    // Put token & user in localStorage
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(updatedUserData));
+    setUser(updatedUserData);
+
+    // Then redirect based on the *actual* subRole from the backend
+    setTimeout(() => {
+      console.log("🔹 Real subRole:", subRole);
+      switch (subRole) {
+        case "admin":
+          navigate("/admin-dashboard");
+          break;
+        case "supervisor":
+          navigate("/supervisor-dashboard");
+          break;
+        case "professor":
+          navigate("/professor-dashboard");
+          break;
+        case "student":
+          navigate("/student-dashboard");
+          break;
+        case "parent":
+          navigate("/parent-dashboard");
+          break;
+        default:
+          navigate("/");
+      }
+    }, 100);
   };
 
   const logoutUser = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.clear();
     setUser(null);
     navigate("/");
   };
 
   if (loading) {
-    return <div>Loading...</div>; // Show loading state to prevent early redirects
+    return <div>Chargement...</div>;
   }
 
   return (

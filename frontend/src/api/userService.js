@@ -21,3 +21,10 @@ export const getMyChildren = async () => {
   const response = await axios.get(`${API_URL}my-children/`, getAuthHeaders());
   return response.data;
 };
+
+export const getProfessors = async () => {
+  const response = await axios.get(`${API_URL}role/professor/`, getAuthHeaders());
+  return response.data;
+};
+
+

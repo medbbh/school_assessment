@@ -16,9 +16,10 @@ const StudentDashboard = () => {
   const bulletinId = 1;
 
   useEffect(() => {
+    console.log("User:", user.role);
     const fetchReport = async () => {
       try {
-        if (user?.role === "student" && user?.user_id) {
+        if (user?.role === "Étudiant" && user?.user_id) {
           const data = await getStudentReport(user.user_id);
           setReport(data);
         }

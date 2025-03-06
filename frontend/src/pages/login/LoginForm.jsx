@@ -13,26 +13,26 @@ const LoginForm = ({ selectedRole }) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage("");
-  
+
     try {
+      // "selectedRole" might be "admin", "student", or "professor"
+      // The server will respond with the *actual* user role
       const response = await login(username, password, selectedRole);
-      console.log("Login Success, User Data:", response); // Debug log
-  
+      console.log("Login Success, User Data:", response);
+
       if (!response || !response.role) {
-        console.error("Error: User data is missing or has no role.");
         throw new Error("Une erreur est survenue lors de l'authentification.");
       }
-  
-      loginUser(response.token, response); // Ensure `response` is passed
+
+      // This calls AuthContext to store user & redirect
+      loginUser(response.token, response);
     } catch (error) {
       console.error("Login Error:", error);
-      setErrorMessage(error);
+      setErrorMessage(error.message || "Erreur de connexion");
     } finally {
       setIsLoading(false);
     }
   };
-  
-  
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md mx-auto">
@@ -42,7 +42,7 @@ const LoginForm = ({ selectedRole }) => {
 
       {errorMessage && (
         <p className="text-red-600 text-center mb-4">
-          {typeof errorMessage === "string" ? errorMessage : "Une erreur est survenue."}
+          {errorMessage}
         </p>
       )}
 
@@ -55,11 +55,14 @@ const LoginForm = ({ selectedRole }) => {
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 
+                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                       transition-all duration-200"
             required
             placeholder="Entrez votre nom d'utilisateur"
           />
         </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Mot de passe
@@ -68,7 +71,9 @@ const LoginForm = ({ selectedRole }) => {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+            className="w-full px-4 py-3 rounded-lg border border-gray-300 
+                       focus:ring-2 focus:ring-blue-500 focus:border-blue-500 
+                       transition-all duration-200"
             required
             placeholder="Entrez votre mot de passe"
           />
@@ -79,7 +84,11 @@ const LoginForm = ({ selectedRole }) => {
           disabled={isLoading}
           className={`w-full py-3 px-4 rounded-lg font-medium text-white
             transition-all duration-300 transform
-            ${isLoading ? "bg-blue-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"}`}
+            ${
+              isLoading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-600 hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"
+            }`}
         >
           {isLoading ? "Connexion..." : "Se connecter"}
         </button>

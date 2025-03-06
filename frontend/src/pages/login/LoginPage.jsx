@@ -4,7 +4,7 @@ import RoleSelection from "./RoleSelection";
 import LoginForm from "./LoginForm";
 
 const LoginPage = () => {
-  const [selectedRole, setSelectedRole] = useState("Student");
+  const [selectedRole, setSelectedRole] = useState("student");
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 flex flex-col items-center">

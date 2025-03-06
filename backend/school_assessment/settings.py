@@ -166,11 +166,11 @@ AUTH_USER_MODEL = 'users.CustomUser'
 #     "http://localhost:5173", 
 # ]
 
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Your React Frontend
-    "http://localhost:5174",  # Your React Frontend
-]
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:5173",  # Your React Frontend
+#     "http://localhost:5174",  # Your React Frontend
+# ]
 
 # Allow credentials (if using authentication)
 CORS_ALLOW_CREDENTIALS = True
